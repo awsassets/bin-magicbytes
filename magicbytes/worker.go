@@ -7,6 +7,7 @@ import (
 )
 
 func worker(ctx context.Context, inner_ctx context.Context, cancel context.CancelFunc, jobs <-chan *searchContext, wg *sync.WaitGroup) {
+	defer wg.Done()
 loop:
 	for {
 		select {
@@ -14,18 +15,20 @@ loop:
 			return
 		case <-inner_ctx.Done():
 			return
-		case job := <-jobs:
+		case job, ok := <-jobs:
+			if !ok {
+				return
+			}
+
 			if job == nil {
 				continue loop
 			}
-			wg.Add(1)
 
 			meta, err := searchMetasInAFile(ctx, inner_ctx, job.filePath, job.metas)
 
 			if err != nil {
 				//TODO: Handle error?
 				log.Println(err)
-				wg.Done()
 
 				continue
 			}
@@ -34,7 +37,6 @@ loop:
 				cancel()
 			}
 
-			wg.Done()
 		}
 
 	}

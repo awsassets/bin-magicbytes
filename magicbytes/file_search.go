@@ -3,6 +3,8 @@ package magicbytes
 import (
 	"bytes"
 	"context"
+	"fmt"
+	"log"
 	"os"
 )
 
@@ -13,10 +15,13 @@ func searchMetasInAFile(ctx context.Context, inner_ctx context.Context, path str
 
 	f, err := os.Open(path)
 	if err != nil {
+		//TODO: Add to log before return it. Make it in all returns
+		log.Println(fmt.Errorf("Can't open file %s, error %v", path, err))
+
 		return nil, err
 	}
 
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	stat, err := f.Stat()
 	if err != nil {
@@ -48,9 +53,10 @@ func searchMetasInAFile(ctx context.Context, inner_ctx context.Context, path str
 		}
 
 		mb := make([]byte, len_bytes)
+		//TODO: Check for err.
 		f.Read(mb)
 
-		if bytes.Compare(mb, meta.Bytes) == 0 {
+		if bytes.Equal(mb, meta.Bytes) {
 			return meta, nil
 		}
 	}

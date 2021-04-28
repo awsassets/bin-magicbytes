@@ -37,12 +37,13 @@ func Test_worker(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			wg.Add(1)
 			go worker(tt.args.ctx, tt.args.inner_ctx, tt.args.cancel, tt.args.jobs, tt.args.wg)
 
 			tt.args.jobs <- sc
+			close(tt.args.jobs)
 
 			wg.Wait()
-			close(tt.args.jobs)
 
 			if !matchResult {
 				t.Errorf("worker() matchresult %v", matchResult)
@@ -73,18 +74,13 @@ func Test_worker_OnMatchReturnFalse(t *testing.T) {
 	}}
 
 	t.Run("OnMatch function returns false", func(t *testing.T) {
+		wg.Add(1)
 		go worker(ctx, inner_ctx, cancel, jobs, &wg)
 
 		jobs <- sc
 		jobs <- sc
 
-	loop:
-		for {
-			select {
-			case <-inner_ctx.Done():
-				break loop
-			}
-		}
+		<-inner_ctx.Done()
 
 		close(jobs)
 
@@ -125,6 +121,7 @@ func Test_worker_ContextCancel(t *testing.T) {
 	}}
 
 	t.Run("Context cancellation", func(t *testing.T) {
+		wg.Add(1)
 		go worker(ctx, inner_ctx, cancel, jobs, &wg)
 
 		jobs <- sc
@@ -135,13 +132,7 @@ func Test_worker_ContextCancel(t *testing.T) {
 			cancel()
 		}()
 
-	loop:
-		for {
-			select {
-			case <-ctx.Done():
-				break loop
-			}
-		}
+		<-ctx.Done()
 
 		close(jobs)
 

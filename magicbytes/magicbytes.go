@@ -35,7 +35,6 @@ func Search(ctx context.Context, targetDir string, metas []*Meta, onMatch OnMatc
 	inner_ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	watcher := make(chan error)
 	jobs := make(chan *searchContext)
 
 	//We don't know the length of the recursive files in a dir and all goroutines has to be gracefully ended.
@@ -44,10 +43,13 @@ func Search(ctx context.Context, targetDir string, metas []*Meta, onMatch OnMatc
 	workerCount := runtime.GOMAXPROCS(0)
 	//Spawn workers
 	for i := 0; i < workerCount; i++ {
+		waitGroup.Add(1)
 		go worker(ctx, inner_ctx, cancel, jobs, &waitGroup)
 	}
 
 	go func() {
+		//TODO: Err can be returned
+		//TODO: make it WalkDir
 		err := filepath.Walk(targetDir, func(path string, info fs.FileInfo, err error) error {
 
 			if !checkContextIsAlive(ctx, inner_ctx) {
@@ -56,6 +58,7 @@ func Search(ctx context.Context, targetDir string, metas []*Meta, onMatch OnMatc
 
 			//TODO: handle individual walk error
 
+			//TODO: Make it IsRegularCheck()
 			if info == nil || info.IsDir() {
 				return nil
 			}
@@ -65,23 +68,14 @@ func Search(ctx context.Context, targetDir string, metas []*Meta, onMatch OnMatc
 			return nil
 		})
 
-		watcher <- err
+		if err != nil {
+			log.Println(err)
+		}
+
+		close(jobs)
 	}()
 
-	err := <-watcher
-
-	if err != nil {
-		log.Println(err)
-	}
-
-	//Ignore wait group when cancellation
-	if checkContextIsAlive(ctx, inner_ctx) {
-		waitGroup.Wait()
-	}
-
-	//Close channels
-	close(watcher)
-	close(jobs)
+	waitGroup.Wait()
 
 	return ctx.Err()
 }
