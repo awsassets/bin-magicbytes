@@ -28,7 +28,7 @@ func main() {
 	if err := magicbytes.Search(ctx, "C:\\tmp", m, func(path, metaType string) bool {
 		fmt.Println(path)
 
-		return false
+		return true
 	}); err != nil {
 		log.Fatal(err)
 	}

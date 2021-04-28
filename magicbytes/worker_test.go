@@ -9,7 +9,12 @@ import (
 
 func Test_worker(t *testing.T) {
 	//Arrange
-	ctx, cancel := context.WithCancel(context.Background())
+	ctxParent, cancelParent := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(ctxParent)
+
+	defer cancel()
+	defer cancelParent()
+
 	jobs := make(chan *searchContext)
 	var wg sync.WaitGroup
 
@@ -38,7 +43,7 @@ func Test_worker(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			wg.Add(1)
-			go worker(tt.args.ctx, tt.args.inner_ctx, tt.args.cancel, tt.args.jobs, tt.args.wg)
+			go worker(tt.args.ctx, tt.args.cancel, tt.args.jobs, tt.args.wg)
 
 			tt.args.jobs <- sc
 			close(tt.args.jobs)
@@ -55,9 +60,11 @@ func Test_worker(t *testing.T) {
 
 func Test_worker_OnMatchReturnFalse(t *testing.T) {
 	//Arrange
-	ctx := context.Background()
-	inner_ctx, cancel := context.WithCancel(context.Background())
+	ctxParent, cancelParent := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(ctxParent)
+
 	defer cancel()
+	defer cancelParent()
 
 	jobs := make(chan *searchContext, 2)
 	var wg sync.WaitGroup
@@ -75,12 +82,12 @@ func Test_worker_OnMatchReturnFalse(t *testing.T) {
 
 	t.Run("OnMatch function returns false", func(t *testing.T) {
 		wg.Add(1)
-		go worker(ctx, inner_ctx, cancel, jobs, &wg)
+		go worker(ctx, cancelParent, jobs, &wg)
 
 		jobs <- sc
 		jobs <- sc
 
-		<-inner_ctx.Done()
+		<-ctx.Done()
 
 		close(jobs)
 
@@ -89,7 +96,7 @@ func Test_worker_OnMatchReturnFalse(t *testing.T) {
 			return
 		}
 
-		if inner_ctx.Err() == nil {
+		if ctx.Err() == nil {
 			t.Errorf("worker() context %v", ctx.Err())
 			return
 		}
@@ -98,9 +105,11 @@ func Test_worker_OnMatchReturnFalse(t *testing.T) {
 
 func Test_worker_ContextCancel(t *testing.T) {
 	//Arrange
-	ctx, cancel := context.WithCancel(context.Background())
-	inner_ctx := context.Background()
+	ctxParent, cancelParent := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(ctxParent)
+
 	defer cancel()
+	defer cancelParent()
 
 	jobs := make(chan *searchContext, 2)
 	var wg sync.WaitGroup
@@ -122,17 +131,17 @@ func Test_worker_ContextCancel(t *testing.T) {
 
 	t.Run("Context cancellation", func(t *testing.T) {
 		wg.Add(1)
-		go worker(ctx, inner_ctx, cancel, jobs, &wg)
+		go worker(ctx, cancel, jobs, &wg)
 
 		jobs <- sc
 		jobs <- sc
 
 		go func() {
 			time.Sleep(1 * time.Second)
-			cancel()
+			cancelParent()
 		}()
 
-		<-ctx.Done()
+		<-ctxParent.Done()
 
 		close(jobs)
 
@@ -141,7 +150,7 @@ func Test_worker_ContextCancel(t *testing.T) {
 			return
 		}
 
-		if ctx.Err() == nil {
+		if ctxParent.Err() == nil {
 			t.Errorf("worker() context %v", ctx.Err())
 			return
 		}

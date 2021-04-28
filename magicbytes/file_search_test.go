@@ -48,7 +48,7 @@ func Test_searchMetasInAFile(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := searchMetasInAFile(tt.args.ctx, tt.args.inner_ctx, tt.args.path, tt.args.metas)
+			got, err := searchMetasInAFile(tt.args.ctx, tt.args.path, tt.args.metas)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("searchMetasInAFile() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -89,7 +89,7 @@ func Test_searchMetasInAFile_CancelContext(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := searchMetasInAFile(tt.args.ctx, tt.args.inner_ctx, tt.args.path, tt.args.metas)
+			got, err := searchMetasInAFile(tt.args.ctx, tt.args.path, tt.args.metas)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("searchMetasInAFile() error = %v, wantErr %v", err, tt.wantErr)
 				return

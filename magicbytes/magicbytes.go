@@ -2,6 +2,7 @@ package magicbytes
 
 import (
 	"context"
+	"fmt"
 	"io/fs"
 	"log"
 	"path/filepath"
@@ -32,7 +33,7 @@ func Search(ctx context.Context, targetDir string, metas []*Meta, onMatch OnMatc
 		return &ArgumentError{"ctx must be provided!"}
 	}
 
-	inner_ctx, cancel := context.WithCancel(ctx)
+	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
 	jobs := make(chan *searchContext)
@@ -41,25 +42,29 @@ func Search(ctx context.Context, targetDir string, metas []*Meta, onMatch OnMatc
 	var waitGroup sync.WaitGroup
 
 	workerCount := runtime.GOMAXPROCS(0)
+
 	//Spawn workers
+	waitGroup.Add(workerCount)
 	for i := 0; i < workerCount; i++ {
-		waitGroup.Add(1)
-		go worker(ctx, inner_ctx, cancel, jobs, &waitGroup)
+		go worker(ctx, cancel, jobs, &waitGroup)
 	}
 
 	go func() {
-		//TODO: Err can be returned
-		//TODO: make it WalkDir
-		err := filepath.Walk(targetDir, func(path string, info fs.FileInfo, err error) error {
+		err := filepath.WalkDir(targetDir, func(path string, d fs.DirEntry, err error) error {
+			if err != nil {
+				//We don't want to break on individual walk errors.
+				log.Println(fmt.Errorf("File walk error on path: %s err: %v", path, err))
 
-			if !checkContextIsAlive(ctx, inner_ctx) {
-				return &ContextCancelledError{}
+				return nil
 			}
 
-			//TODO: handle individual walk error
+			select {
+			case <-ctx.Done():
+				return ctx.Err()
+			default:
+			}
 
-			//TODO: Make it IsRegularCheck()
-			if info == nil || info.IsDir() {
+			if d == nil || !d.Type().IsRegular() {
 				return nil
 			}
 
@@ -70,6 +75,7 @@ func Search(ctx context.Context, targetDir string, metas []*Meta, onMatch OnMatc
 
 		if err != nil {
 			log.Println(err)
+			log.Println(fmt.Errorf("File walk error: %v", err))
 		}
 
 		close(jobs)

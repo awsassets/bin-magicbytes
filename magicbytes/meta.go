@@ -18,9 +18,3 @@ type ArgumentError struct{ Message string }
 func (e *ArgumentError) Error() string {
 	return fmt.Sprintf(e.Message)
 }
-
-type ContextCancelledError struct{}
-
-func (e *ContextCancelledError) Error() string {
-	return fmt.Sprintf("Context cancelled.")
-}
