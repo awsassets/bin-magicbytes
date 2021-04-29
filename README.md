@@ -41,6 +41,8 @@ func main() {
 
 ## API
 `type Meta struct { ... }` Holds the name, magical bytes, and offset of the magical bytes to be searched.
+
 `Search(...)` Search searches the given target directory to find files recursively using meta information.
+
 `OnMatchFunc func(...)` OnMatchFunc represents a function to be called when Search function finds a match. Returning false must immediately stop Search process. For every match, onMatch callback is called concurrently.
 
