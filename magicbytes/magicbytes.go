@@ -33,6 +33,7 @@ func Search(ctx context.Context, targetDir string, metas []*Meta, onMatch OnMatc
 		return &ArgumentError{"ctx must be provided!"}
 	}
 
+	//Context propagation would be enough for cancelling false result in OnMatchFunc
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
@@ -74,7 +75,6 @@ func Search(ctx context.Context, targetDir string, metas []*Meta, onMatch OnMatc
 		})
 
 		if err != nil {
-			log.Println(err)
 			log.Println(fmt.Errorf("File walk error: %v", err))
 		}
 

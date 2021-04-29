@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"log"
 	"net/http"
@@ -11,6 +12,8 @@ import (
 )
 
 func main() {
+	var dirPath string
+	flag.StringVar(&dirPath, "dirPath", ".", "Dir path")
 
 	ctx, cancel := context.WithCancel(context.Background())
 
@@ -25,10 +28,10 @@ func main() {
 		nil,
 	}
 
-	if err := magicbytes.Search(ctx, "C:\\tmp", m, func(path, metaType string) bool {
+	if err := magicbytes.Search(ctx, dirPath, m, func(path, metaType string) bool {
 		fmt.Println(path)
 
-		return true
+		return false
 	}); err != nil {
 		log.Fatal(err)
 	}
