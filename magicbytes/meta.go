@@ -13,8 +13,8 @@ type Meta struct {
 // Returning false must immediately stop Search process.
 type OnMatchFunc func(path, metaType string) bool
 
-type ArgumentError struct{ Message string }
+type argumentError struct{ Message string }
 
-func (e *ArgumentError) Error() string {
+func (e *argumentError) Error() string {
 	return fmt.Sprintf(e.Message)
 }

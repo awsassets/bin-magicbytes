@@ -3,22 +3,16 @@ package magicbytes
 import (
 	"bytes"
 	"context"
-	"fmt"
+	"io"
 	"log"
 	"os"
 )
 
 func searchMetasInAFile(ctx context.Context, path string, metas *[]*Meta) (*Meta, error) {
-	select {
-	case <-ctx.Done():
-		return nil, ctx.Err()
-	default:
-	}
-
 	f, err := os.Open(path)
 	if err != nil {
 		//TODO: Add to log before return it. Make it in all returns
-		log.Println(fmt.Errorf("Can't open file %s, error %v", path, err))
+		log.Printf("Can't open file %s, error %v", path, err)
 
 		return nil, err
 	}
@@ -27,7 +21,7 @@ func searchMetasInAFile(ctx context.Context, path string, metas *[]*Meta) (*Meta
 
 	stat, err := f.Stat()
 	if err != nil {
-		log.Println(fmt.Errorf("Can't stat file %s, error %v", path, err))
+		log.Printf("Can't stat file %s, error %v", path, err)
 
 		return nil, err
 	}
@@ -52,9 +46,9 @@ func searchMetasInAFile(ctx context.Context, path string, metas *[]*Meta) (*Meta
 			continue
 		}
 
-		_, e := f.Seek(meta.Offset, 0)
+		_, e := f.Seek(meta.Offset, io.SeekStart)
 		if e != nil {
-			log.Println(fmt.Errorf("Can't seek on file %s, error %v", path, err))
+			log.Printf("Can't seek on file %s, error %v", path, err)
 
 			continue
 		}
@@ -63,7 +57,7 @@ func searchMetasInAFile(ctx context.Context, path string, metas *[]*Meta) (*Meta
 
 		n, err := f.Read(mb)
 		if err != nil {
-			log.Println(fmt.Errorf("Can't read file %s, error %v", path, err))
+			log.Printf("Can't read file %s, error %v", path, err)
 
 			continue
 		}
